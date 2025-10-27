@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="description" content="Workout Tracking App">
+    <title>Workout Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiV29ya291dCBUcmFja2VyIiwic2hvcnRfbmFtZSI6IldvcmtvdXQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzFlMWI0YiIsInRoZW1lX2NvbG9yIjoiIzFlMWI0YiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBeE1USWdNVEV5SWo0OGNtVmpkQ0IzYVdSMGFEMGlNVEV5SWlCb1pXbG5hSFE5SWpFeE1pSWdabWxzYkQwaUl6RmxNV0kwWWlJdlBqeDBaWGgwSUhnOUlqVTJJaUI1UFNJMk1DSWdabWxzYkQwaUkzZG9hWFJsSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUIwWlhoMExXRnVZMmh2Y2owaWJXbGtaR3hsSWo0OEwzUmxlSFErUEhCaGRHZ2daRDBpVFRNd0xEUXdJRXczTUN3ME1DQk1PREFzT0RBZ1RETTBMRGd3SURveUlpQm1hV3hzUFNJamQyaHBkR1VpTHo0OEwzTjJaejQ9Iiwic2l6ZXMiOiIxMTJ4MTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        .lucide {
+            width: 1.25rem;
+            height: 1.25rem;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect } = React;
+        
+        // Lucide Icons as SVG components
+        const Plus = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+        );
+        
+        const Trash2 = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+            </svg>
+        );
+        
+        const Dumbbell = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.5 6.5l11 11M3 12h3m15 0h3M6 3v3m0 12v3m12-18v3m0 12v3" />
+            </svg>
+        );
+        
+        const TrendingUp = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 6l-9.5 9.5-5-5L1 18M17 6h6v6" />
+            </svg>
+        );
+        
+        const Calendar = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        );
+        
+        const X = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+        
+        const Download = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+        );
+        
+        const Upload = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+        );
+
+        function WorkoutTracker() {
+            const [workouts, setWorkouts] = useState([]);
+            const [currentWorkout, setCurrentWorkout] = useState({
+                date: new Date().toISOString().split('T')[0],
+                exercises: []
+            });
+            const [view, setView] = useState('add');
+
+            useEffect(() => {
+                loadWorkouts();
+            }, []);
+
+            const loadWorkouts = () => {
+                try {
+                    const stored = localStorage.getItem('workouts');
+                    if (stored) {
+                        setWorkouts(JSON.parse(stored));
+                    }
+                } catch (error) {
+                    console.log('No workouts found yet');
+                }
+            };
+
+            const saveWorkouts = (updatedWorkouts) => {
+                try {
+                    localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
+                    setWorkouts(updatedWorkouts);
+                } catch (error) {
+                    console.error('Error saving workouts:', error);
+                }
+            };
+
+            const addExercise = () => {
+                setCurrentWorkout({
+                    ...currentWorkout,
+                    exercises: [
+                        ...currentWorkout.exercises,
+                        { name: '', sets: [{ reps: '', weight: '' }] }
+                    ]
+                });
+            };
+
+            const updateExercise = (exerciseIndex, field, value) => {
+                const updated = { ...currentWorkout };
+                updated.exercises[exerciseIndex][field] = value;
+                setCurrentWorkout(updated);
+            };
+
+            const addSet = (exerciseIndex) => {
+                const updated = { ...currentWorkout };
+                updated.exercises[exerciseIndex].sets.push({ reps: '', weight: '' });
+                setCurrentWorkout(updated);
+            };
+
+            const updateSet = (exerciseIndex, setIndex, field, value) => {
+                const updated = { ...currentWorkout };
+                updated.exercises[exerciseIndex].sets[setIndex][field] = value;
+                setCurrentWorkout(updated);
+            };
+
+            const removeSet = (exerciseIndex, setIndex) => {
+                const updated = { ...currentWorkout };
+                updated.exercises[exerciseIndex].sets.splice(setIndex, 1);
+                setCurrentWorkout(updated);
+            };
+
+            const removeExercise = (exerciseIndex) => {
+                const updated = { ...currentWorkout };
+                updated.exercises.splice(exerciseIndex, 1);
+                setCurrentWorkout(updated);
+            };
+
+            const saveWorkout = () => {
+                if (currentWorkout.exercises.length === 0) return;
+                
+                const newWorkout = {
+                    ...currentWorkout,
+                    id: Date.now(),
+                    timestamp: new Date().toISOString()
+                };
+                
+                const updated = [newWorkout, ...workouts];
+                saveWorkouts(updated);
+                
+                setCurrentWorkout({
+                    date: new Date().toISOString().split('T')[0],
+                    exercises: []
+                });
+            };
+
+            const deleteWorkout = (id) => {
+                const updated = workouts.filter(w => w.id !== id);
+                saveWorkouts(updated);
+            };
+
+            const getExerciseStats = () => {
+                const stats = {};
+                workouts.forEach(workout => {
+                    workout.exercises.forEach(exercise => {
+                        if (!stats[exercise.name]) {
+                            stats[exercise.name] = { count: 0, totalVolume: 0, maxWeight: 0 };
+                        }
+                        stats[exercise.name].count++;
+                        exercise.sets.forEach(set => {
+                            const volume = (parseFloat(set.reps) || 0) * (parseFloat(set.weight) || 0);
+                            stats[exercise.name].totalVolume += volume;
+                            stats[exercise.name].maxWeight = Math.max(stats[exercise.name].maxWeight, parseFloat(set.weight) || 0);
+                        });
+                    });
+                });
+                return stats;
+            };
+
+            const exportBackup = () => {
+                const backup = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    workouts: workouts
+                };
+                
+                const dataStr = JSON.stringify(backup, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `workout-backup-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const importBackup = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const backup = JSON.parse(e.target.result);
+                        
+                        if (!backup.workouts || !Array.isArray(backup.workouts)) {
+                            alert('Ungültiges Backup-Format!');
+                            return;
+                        }
+
+                        const confirmed = confirm(
+                            `Backup vom ${new Date(backup.exportDate).toLocaleDateString('de-DE')}\n` +
+                            `${backup.workouts.length} Workouts gefunden.\n\n` +
+                            `Möchtest du deine aktuellen Daten ersetzen oder hinzufügen?\n\n` +
+                            `OK = Ersetzen | Abbrechen = Hinzufügen`
+                        );
+
+                        let updatedWorkouts;
+                        if (confirmed) {
+                            updatedWorkouts = backup.workouts;
+                        } else {
+                            const existingIds = new Set(workouts.map(w => w.id));
+                            const newWorkouts = backup.workouts.filter(w => !existingIds.has(w.id));
+                            updatedWorkouts = [...workouts, ...newWorkouts];
+                        }
+
+                        saveWorkouts(updatedWorkouts);
+                        alert(`Erfolgreich ${updatedWorkouts.length} Workouts importiert!`);
+                        
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        alert('Fehler beim Importieren der Backup-Datei!');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+                    <div className="max-w-4xl mx-auto p-4 sm:p-6">
+                        <div className="text-center mb-8 pt-8">
+                            <div className="flex items-center justify-center gap-3 mb-2">
+                                <Dumbbell />
+                                <h1 className="text-4xl font-bold text-white">Workout Tracker</h1>
+                            </div>
+                            <p className="text-purple-200">Verfolge deine Fortschritte</p>
+                        </div>
+
+                        <div className="flex gap-2 mb-6 bg-slate-800/50 backdrop-blur p-2 rounded-xl">
+                            <button
+                                onClick={() => setView('add')}
+                                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                                    view === 'add' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
+                                }`}
+                            >
+                                <Plus /> Workout
+                            </button>
+                            <button
+                                onClick={() => setView('history')}
+                                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                                    view === 'history' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
+                                }`}
+                            >
+                                <Calendar /> Historie
+                            </button>
+                            <button
+                                onClick={() => setView('stats')}
+                                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                                    view === 'stats' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
+                                }`}
+                            >
+                                <TrendingUp /> Stats
+                            </button>
+                        </div>
+
+                        <div className="flex gap-2 mb-6">
+                            <button
+                                onClick={exportBackup}
+                                className="flex-1 py-3 px-4 bg-green-600/20 hover:bg-green-600/30 text-green-300 rounded-lg transition-colors font-medium border border-green-600/30"
+                            >
+                                <Download /> Backup erstellen
+                            </button>
+                            <label className="flex-1">
+                                <input type="file" accept=".json" onChange={importBackup} className="hidden" />
+                                <div className="py-3 px-4 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-colors font-medium border border-blue-600/30 text-center cursor-pointer">
+                                    <Upload /> Backup wiederherstellen
+                                </div>
+                            </label>
+                        </div>
+
+                        {view === 'add' && (
+                            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-2xl">
+                                <div className="mb-6">
+                                    <label className="block text-purple-200 mb-2 font-medium">Datum</label>
+                                    <input
+                                        type="date"
+                                        value={currentWorkout.date}
+                                        onChange={(e) => setCurrentWorkout({ ...currentWorkout, date: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                </div>
+
+                                {currentWorkout.exercises.map((exercise, exerciseIndex) => (
+                                    <div key={exerciseIndex} className="mb-6 bg-slate-700/30 rounded-xl p-4 border border-slate-600">
+                                        <div className="flex gap-2 mb-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Übungsname (z.B. Bankdrücken)"
+                                                value={exercise.name}
+                                                onChange={(e) => updateExercise(exerciseIndex, 'name', e.target.value)}
+                                                className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                            <button
+                                                onClick={() => removeExercise(exerciseIndex)}
+                                                className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 />
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {exercise.sets.map((set, setIndex) => (
+                                                <div key={setIndex} className="flex gap-2 items-center">
+                                                    <span className="text-purple-300 font-medium w-16">Satz {setIndex + 1}</span>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Wdh"
+                                                        value={set.reps}
+                                                        onChange={(e) => updateSet(exerciseIndex, setIndex, 'reps', e.target.value)}
+                                                        className="w-24 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        step="0.5"
+                                                        placeholder="Gewicht (kg)"
+                                                        value={set.weight}
+                                                        onChange={(e) => updateSet(exerciseIndex, setIndex, 'weight', e.target.value)}
+                                                        className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    />
+                                                    {exercise.sets.length > 1 && (
+                                                        <button
+                                                            onClick={() => removeSet(exerciseIndex, setIndex)}
+                                                            className="px-3 py-2 text-red-400 hover:bg-red-600/20 rounded-lg transition-colors"
+                                                        >
+                                                            <X />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            onClick={() => addSet(exerciseIndex)}
+                                            className="mt-3 w-full py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors font-medium"
+                                        >
+                                            + Satz hinzufügen
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={addExercise}
+                                        className="flex-1 py-3 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors font-medium"
+                                    >
+                                        + Übung hinzufügen
+                                    </button>
+                                    {currentWorkout.exercises.length > 0 && (
+                                        <button
+                                            onClick={saveWorkout}
+                                            className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium shadow-lg"
+                                        >
+                                            Workout speichern
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'history' && (
+                            <div className="space-y-4">
+                                {workouts.length === 0 ? (
+                                    <div className="text-center py-12 bg-slate-800/50 backdrop-blur rounded-2xl">
+                                        <Calendar />
+                                        <p className="text-slate-400 text-lg mt-4">Noch keine Workouts vorhanden</p>
+                                    </div>
+                                ) : (
+                                    workouts.map((workout) => (
+                                        <div key={workout.id} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-xl">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-white">{new Date(workout.date).toLocaleDateString('de-DE')}</h3>
+                                                    <p className="text-purple-300 text-sm">{workout.exercises.length} Übungen</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteWorkout(workout.id)}
+                                                    className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 />
+                                                </button>
+                                            </div>
+                                            {workout.exercises.map((exercise, idx) => (
+                                                <div key={idx} className="mb-3 last:mb-0 bg-slate-700/30 rounded-lg p-4">
+                                                    <h4 className="font-semibold text-purple-200 mb-2">{exercise.name}</h4>
+                                                    <div className="space-y-1">
+                                                        {exercise.sets.map((set, setIdx) => (
+                                                            <div key={setIdx} className="text-slate-300 text-sm">
+                                                                Satz {setIdx + 1}: {set.reps} Wdh × {set.weight} kg
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {view === 'stats' && (
+                            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-2xl">
+                                <h2 className="text-2xl font-bold text-white mb-6">Statistiken</h2>
+                                {workouts.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <TrendingUp />
+                                        <p className="text-slate-400 text-lg mt-4">Keine Daten vorhanden</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600">
+                                            <h3 className="text-purple-200 font-semibold mb-2">Gesamt</h3>
+                                            <p className="text-white text-3xl font-bold">{workouts.length}</p>
+                                            <p className="text-slate-400 text-sm">Workouts absolviert</p>
+                                        </div>
+                                        
+                                        {Object.entries(getExerciseStats()).map(([name, stats]) => (
+                                            <div key={name} className="bg-slate-700/30 rounded-xl p-4 border border-slate-600">
+                                                <h3 className="text-purple-200 font-semibold mb-3">{name}</h3>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div>
+                                                        <p className="text-slate-400 text-sm">Anzahl</p>
+                                                        <p className="text-white text-xl font-bold">{stats.count}×</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-slate-400 text-sm">Max Gewicht</p>
+                                                        <p className="text-white text-xl font-bold">{stats.maxWeight} kg</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-slate-400 text-sm">Volumen</p>
+                                                        <p className="text-white text-xl font-bold">{Math.round(stats.totalVolume)} kg</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>
