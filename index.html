@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiV29ya291dCBUcmFja2VyIiwic2hvcnRfbmFtZSI6IldvcmtvdXQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzFlMWI0YiIsInRoZW1lX2NvbG9yIjoiIzFlMWI0YiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBeE1USWdNVEV5SWo0OGNtVmpkQ0IzYVdSMGFEMGlNVEV5SWlCb1pXbG5hSFE5SWpFeE1pSWdabWxzYkQwaUl6RmxNV0kwWWlJdlBqeDBaWGgwSUhnOUlqVTJJaUI1UFNJMk1DSWdabWxzYkQwaUkzZG9hWFJsSWlCbWIyNTBMWE5wZW1VOUlqUTRJaUIwWlhoMExXRnVZMmh2Y2owaWJXbGtaR3hsSWo0OEwzUmxlSFErUEhCaGRHZ2daRDBpVFRNd0xEUXdJRXczTUN3ME1DQk1PREFzT0RBZ1RETTBMRGd3SURveUlpQm1hV3hzUFNJamQyaHBkR1VpTHo0OEwzTjJaejQ9Iiwic2l6ZXMiOiIxMTJ4MTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
     <style>
         body {
             margin: 0;
@@ -29,8 +29,9 @@
     
     <script type="text/babel" data-type="module">
         const { useState, useEffect } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
         
-        // Lucide Icons as SVG components
+        // Icons
         const Plus = () => (
             <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -79,13 +80,43 @@
             </svg>
         );
 
+        const Edit = () => (
+            <svg className="lucide" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+        );
+
+        // Exercise definitions
+        const EXERCISES = {
+            push: {
+                chest: ['Bench Press', 'Incline Bench Press', 'My Chest Exercise', 'Dumbell Bench', 'Dips', 'Pec Deck', 'Deficit Push Ups', 'Incline Push Ups'],
+                triceps: ['Overhead Extensions', 'Push Downs', 'Push Ups', 'Skull Crusher', 'Triceps Kickbacks'],
+                shoulder: ['Shoulder Press', 'Lateral Raise']
+            },
+            pull: {
+                back: ['Pull Ups', 'Pull Down', 'Rows', 'TBar Rows', 'Death Rows', 'Lower Back Extension', 'Chest Supported Rows', 'Shrugs', 'Reverse Cable Flys', 'Reverse Pec', 'Face Pulls', 'Pull Over'],
+                biceps: ['EZ Bar Curl', 'Curl', 'Preacher Curl Machine', 'Hammer Curl', 'Reverse Curl', '21s']
+            },
+            legs: {
+                quads: ['Squad', 'Leg Press', 'Leg Extensions'],
+                hamstrings: ['Romainian Dead Lift', 'Leg Curl', 'Hip Press'],
+                inner: ['Leg Closes'],
+                calves: ['Calf Raises']
+            },
+            abs: {
+                abs: ['Full Leg Raises', 'Leg Raises', 'Half Dragon Flys', 'Decline Crunches', 'Crunches', 'L-Sit']
+            }
+        };
+
         function WorkoutTracker() {
             const [workouts, setWorkouts] = useState([]);
-            const [currentWorkout, setCurrentWorkout] = useState({
-                date: new Date().toISOString().split('T')[0],
-                exercises: []
-            });
-            const [view, setView] = useState('add');
+            const [view, setView] = useState('select');
+            const [workoutType, setWorkoutType] = useState(null);
+            const [currentWorkout, setCurrentWorkout] = useState(null);
+            const [filterType, setFilterType] = useState('all');
+            const [editingWorkout, setEditingWorkout] = useState(null);
+            const [statsCategory, setStatsCategory] = useState(null);
+            const [selectedExercise, setSelectedExercise] = useState(null);
 
             useEffect(() => {
                 loadWorkouts();
@@ -111,14 +142,71 @@
                 }
             };
 
-            const addExercise = () => {
+            const startNewWorkout = (type) => {
+                setWorkoutType(type);
+                if (type === 'running') {
+                    setCurrentWorkout({
+                        type: 'running',
+                        date: new Date().toISOString().split('T')[0],
+                        runs: []
+                    });
+                } else if (type === 'kickboxing') {
+                    setCurrentWorkout({
+                        type: 'kickboxing',
+                        date: new Date().toISOString().split('T')[0],
+                        duration: { hours: '', minutes: '', seconds: '' }
+                    });
+                } else {
+                    setCurrentWorkout({
+                        type: type,
+                        date: new Date().toISOString().split('T')[0],
+                        exercises: []
+                    });
+                }
+                setView('workout');
+            };
+
+            const addExercise = (exerciseName) => {
                 setCurrentWorkout({
                     ...currentWorkout,
                     exercises: [
                         ...currentWorkout.exercises,
-                        { name: '', sets: [{ reps: '', weight: '' }] }
+                        { name: exerciseName, sets: [{ reps: '', weight: '', form: 'Standard' }] }
                     ]
                 });
+            };
+
+            const addCustomExercise = () => {
+                const name = prompt('Übungsname eingeben:');
+                if (name && name.trim()) {
+                    addExercise(name.trim());
+                }
+            };
+
+            const addRun = () => {
+                setCurrentWorkout({
+                    ...currentWorkout,
+                    runs: [
+                        ...currentWorkout.runs,
+                        { distance: '', time: { hours: '', minutes: '', seconds: '' }, sprints: '' }
+                    ]
+                });
+            };
+
+            const updateRun = (runIndex, field, value) => {
+                const updated = { ...currentWorkout };
+                if (field === 'time') {
+                    updated.runs[runIndex].time = value;
+                } else {
+                    updated.runs[runIndex][field] = value;
+                }
+                setCurrentWorkout(updated);
+            };
+
+            const removeRun = (runIndex) => {
+                const updated = { ...currentWorkout };
+                updated.runs.splice(runIndex, 1);
+                setCurrentWorkout(updated);
             };
 
             const updateExercise = (exerciseIndex, field, value) => {
@@ -129,7 +217,7 @@
 
             const addSet = (exerciseIndex) => {
                 const updated = { ...currentWorkout };
-                updated.exercises[exerciseIndex].sets.push({ reps: '', weight: '' });
+                updated.exercises[exerciseIndex].sets.push({ reps: '', weight: '', form: 'Standard' });
                 setCurrentWorkout(updated);
             };
 
@@ -152,7 +240,9 @@
             };
 
             const saveWorkout = () => {
-                if (currentWorkout.exercises.length === 0) return;
+                if (currentWorkout.type === 'running' && currentWorkout.runs.length === 0) return;
+                if (currentWorkout.type === 'kickboxing' && !currentWorkout.duration.minutes && !currentWorkout.duration.hours && !currentWorkout.duration.seconds) return;
+                if (['push', 'pull', 'legs', 'abs'].includes(currentWorkout.type) && currentWorkout.exercises.length === 0) return;
                 
                 const newWorkout = {
                     ...currentWorkout,
@@ -163,38 +253,44 @@
                 const updated = [newWorkout, ...workouts];
                 saveWorkouts(updated);
                 
-                setCurrentWorkout({
-                    date: new Date().toISOString().split('T')[0],
-                    exercises: []
-                });
+                setCurrentWorkout(null);
+                setWorkoutType(null);
+                setView('select');
             };
 
             const deleteWorkout = (id) => {
-                const updated = workouts.filter(w => w.id !== id);
-                saveWorkouts(updated);
+                if (confirm('Workout wirklich löschen?')) {
+                    const updated = workouts.filter(w => w.id !== id);
+                    saveWorkouts(updated);
+                }
             };
 
-            const getExerciseStats = () => {
-                const stats = {};
-                workouts.forEach(workout => {
-                    workout.exercises.forEach(exercise => {
-                        if (!stats[exercise.name]) {
-                            stats[exercise.name] = { count: 0, totalVolume: 0, maxWeight: 0 };
-                        }
-                        stats[exercise.name].count++;
-                        exercise.sets.forEach(set => {
-                            const volume = (parseFloat(set.reps) || 0) * (parseFloat(set.weight) || 0);
-                            stats[exercise.name].totalVolume += volume;
-                            stats[exercise.name].maxWeight = Math.max(stats[exercise.name].maxWeight, parseFloat(set.weight) || 0);
-                        });
-                    });
-                });
-                return stats;
+            const startEditWorkout = (workout) => {
+                setEditingWorkout(workout);
+                setCurrentWorkout(JSON.parse(JSON.stringify(workout)));
+                setWorkoutType(workout.type);
+                setView('workout');
+            };
+
+            const updateExistingWorkout = () => {
+                const updated = workouts.map(w => w.id === editingWorkout.id ? { ...currentWorkout, id: editingWorkout.id, timestamp: editingWorkout.timestamp } : w);
+                saveWorkouts(updated);
+                setEditingWorkout(null);
+                setCurrentWorkout(null);
+                setWorkoutType(null);
+                setView('history');
+            };
+
+            const cancelEdit = () => {
+                setEditingWorkout(null);
+                setCurrentWorkout(null);
+                setWorkoutType(null);
+                setView('history');
             };
 
             const exportBackup = () => {
                 const backup = {
-                    version: '1.0',
+                    version: '2.0',
                     exportDate: new Date().toISOString(),
                     workouts: workouts
                 };
@@ -251,9 +347,33 @@
                 event.target.value = '';
             };
 
+            const getExerciseProgress = (exerciseName) => {
+                const data = workouts
+                    .filter(w => ['push', 'pull', 'legs', 'abs'].includes(w.type))
+                    .flatMap(w => w.exercises.filter(e => e.name === exerciseName).map(e => ({
+                        date: w.date,
+                        value: e.sets.reduce((sum, set) => sum + (parseFloat(set.reps) || 0) * (parseFloat(set.weight) || 0), 0)
+                    })))
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                return data;
+            };
+
+            const getAllExerciseNames = () => {
+                const names = new Set();
+                workouts.forEach(w => {
+                    if (w.exercises) {
+                        w.exercises.forEach(e => names.add(e.name));
+                    }
+                });
+                return Array.from(names);
+            };
+
+            const filteredWorkouts = filterType === 'all' ? workouts : workouts.filter(w => w.type === filterType);
+
             return (
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-                    <div className="max-w-4xl mx-auto p-4 sm:p-6">
+                    <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-20">
                         <div className="text-center mb-8 pt-8">
                             <div className="flex items-center justify-center gap-3 mb-2">
                                 <Dumbbell />
@@ -262,17 +382,18 @@
                             <p className="text-purple-200">Verfolge deine Fortschritte</p>
                         </div>
 
+                        {/* Main Navigation */}
                         <div className="flex gap-2 mb-6 bg-slate-800/50 backdrop-blur p-2 rounded-xl">
                             <button
-                                onClick={() => setView('add')}
+                                onClick={() => { setView('select'); setCurrentWorkout(null); setWorkoutType(null); setEditingWorkout(null); }}
                                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-                                    view === 'add' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
+                                    view === 'select' || view === 'workout' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
                                 }`}
                             >
                                 <Plus /> Workout
                             </button>
                             <button
-                                onClick={() => setView('history')}
+                                onClick={() => { setView('history'); setStatsCategory(null); setSelectedExercise(null); }}
                                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
                                     view === 'history' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
                                 }`}
@@ -280,7 +401,7 @@
                                 <Calendar /> Historie
                             </button>
                             <button
-                                onClick={() => setView('stats')}
+                                onClick={() => { setView('stats'); setStatsCategory(null); setSelectedExercise(null); }}
                                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
                                     view === 'stats' ? 'bg-purple-600 text-white shadow-lg' : 'text-purple-200 hover:bg-slate-700/50'
                                 }`}
@@ -289,23 +410,64 @@
                             </button>
                         </div>
 
+                        {/* Backup Buttons */}
                         <div className="flex gap-2 mb-6">
                             <button
                                 onClick={exportBackup}
                                 className="flex-1 py-3 px-4 bg-green-600/20 hover:bg-green-600/30 text-green-300 rounded-lg transition-colors font-medium border border-green-600/30"
                             >
-                                <Download /> Backup erstellen
+                                <Download /> Backup
                             </button>
                             <label className="flex-1">
                                 <input type="file" accept=".json" onChange={importBackup} className="hidden" />
                                 <div className="py-3 px-4 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-colors font-medium border border-blue-600/30 text-center cursor-pointer">
-                                    <Upload /> Backup wiederherstellen
+                                    <Upload /> Wiederherstellen
                                 </div>
                             </label>
                         </div>
 
-                        {view === 'add' && (
+                        {/* Workout Type Selection */}
+                        {view === 'select' && !currentWorkout && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => startNewWorkout('push')} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 hover:bg-slate-700/50 transition-colors">
+                                    <h3 className="text-2xl font-bold text-white mb-2">💪 Push</h3>
+                                    <p className="text-purple-200 text-sm">Brust, Trizeps, Schultern</p>
+                                </button>
+                                <button onClick={() => startNewWorkout('pull')} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 hover:bg-slate-700/50 transition-colors">
+                                    <h3 className="text-2xl font-bold text-white mb-2">🔥 Pull</h3>
+                                    <p className="text-purple-200 text-sm">Rücken, Bizeps</p>
+                                </button>
+                                <button onClick={() => startNewWorkout('legs')} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 hover:bg-slate-700/50 transition-colors">
+                                    <h3 className="text-2xl font-bold text-white mb-2">🦵 Legs</h3>
+                                    <p className="text-purple-200 text-sm">Beine komplett</p>
+                                </button>
+                                <button onClick={() => startNewWorkout('abs')} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 hover:bg-slate-700/50 transition-colors">
+                                    <h3 className="text-2xl font-bold text-white mb-2">🔲 Abs</h3>
+                                    <p className="text-purple-200 text-sm">Bauchmuskulatur</p>
+                                </button>
+                                <button onClick={() => startNewWorkout('running')} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 hover:bg-slate-700/50 transition-colors">
+                                    <h3 className="text-2xl font-bold text-white mb-2">🏃 Rennen</h3>
+                                    <p className="text-purple-200 text-sm">Laufen & Sprints</p>
+                                </button>
+                                <button onClick={() => startNewWorkout('kickboxing')} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 hover:bg-slate-700/50 transition-colors">
+                                    <h3 className="text-2xl font-bold text-white mb-2">🥊 Kickboxen</h3>
+                                    <p className="text-purple-200 text-sm">Kampfsport Training</p>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Workout Entry */}
+                        {view === 'workout' && currentWorkout && (
                             <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-2xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-white capitalize">{editingWorkout ? 'Bearbeiten' : 'Neues'} {currentWorkout.type} Workout</h2>
+                                    {editingWorkout && (
+                                        <button onClick={cancelEdit} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">
+                                            Abbrechen
+                                        </button>
+                                    )}
+                                </div>
+                                
                                 <div className="mb-6">
                                     <label className="block text-purple-200 mb-2 font-medium">Datum</label>
                                     <input
@@ -316,159 +478,441 @@
                                     />
                                 </div>
 
-                                {currentWorkout.exercises.map((exercise, exerciseIndex) => (
-                                    <div key={exerciseIndex} className="mb-6 bg-slate-700/30 rounded-xl p-4 border border-slate-600">
-                                        <div className="flex gap-2 mb-4">
-                                            <input
-                                                type="text"
-                                                placeholder="Übungsname (z.B. Bankdrücken)"
-                                                value={exercise.name}
-                                                onChange={(e) => updateExercise(exerciseIndex, 'name', e.target.value)}
-                                                className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            />
-                                            <button
-                                                onClick={() => removeExercise(exerciseIndex)}
-                                                className="px-4 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 />
-                                            </button>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            {exercise.sets.map((set, setIndex) => (
-                                                <div key={setIndex} className="flex gap-2 items-center">
-                                                    <span className="text-purple-300 font-medium w-16">Satz {setIndex + 1}</span>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Wdh"
-                                                        value={set.reps}
-                                                        onChange={(e) => updateSet(exerciseIndex, setIndex, 'reps', e.target.value)}
-                                                        className="w-24 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    />
-                                                    <input
-                                                        type="number"
-                                                        step="0.5"
-                                                        placeholder="Gewicht (kg)"
-                                                        value={set.weight}
-                                                        onChange={(e) => updateSet(exerciseIndex, setIndex, 'weight', e.target.value)}
-                                                        className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    />
-                                                    {exercise.sets.length > 1 && (
-                                                        <button
-                                                            onClick={() => removeSet(exerciseIndex, setIndex)}
-                                                            className="px-3 py-2 text-red-400 hover:bg-red-600/20 rounded-lg transition-colors"
-                                                        >
-                                                            <X />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <button
-                                            onClick={() => addSet(exerciseIndex)}
-                                            className="mt-3 w-full py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors font-medium"
-                                        >
-                                            + Satz hinzufügen
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={addExercise}
-                                        className="flex-1 py-3 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors font-medium"
-                                    >
-                                        + Übung hinzufügen
-                                    </button>
-                                    {currentWorkout.exercises.length > 0 && (
-                                        <button
-                                            onClick={saveWorkout}
-                                            className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium shadow-lg"
-                                        >
-                                            Workout speichern
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {view === 'history' && (
-                            <div className="space-y-4">
-                                {workouts.length === 0 ? (
-                                    <div className="text-center py-12 bg-slate-800/50 backdrop-blur rounded-2xl">
-                                        <Calendar />
-                                        <p className="text-slate-400 text-lg mt-4">Noch keine Workouts vorhanden</p>
-                                    </div>
-                                ) : (
-                                    workouts.map((workout) => (
-                                        <div key={workout.id} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-xl">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-white">{new Date(workout.date).toLocaleDateString('de-DE')}</h3>
-                                                    <p className="text-purple-300 text-sm">{workout.exercises.length} Übungen</p>
-                                                </div>
+                                {/* Strength Workouts */}
+                                {['push', 'pull', 'legs', 'abs'].includes(currentWorkout.type) && (
+                                    <>
+                                        {/* Exercise Selection Buttons */}
+                                        {currentWorkout.exercises.length === 0 && (
+                                            <div className="mb-6">
+                                                <h3 className="text-xl font-bold text-white mb-4">Übung wählen:</h3>
+                                                {Object.entries(EXERCISES[currentWorkout.type]).map(([category, exercises]) => (
+                                                    <div key={category} className="mb-4">
+                                                        <h4 className="text-purple-300 font-semibold mb-2 capitalize">{category}</h4>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {exercises.map(ex => (
+                                                                <button
+                                                                    key={ex}
+                                                                    onClick={() => addExercise(ex)}
+                                                                    className="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 rounded-lg transition-colors text-sm"
+                                                                >
+                                                                    {ex}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                                 <button
-                                                    onClick={() => deleteWorkout(workout.id)}
-                                                    className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                                                    onClick={addCustomExercise}
+                                                    className="w-full py-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-colors font-medium mt-4"
                                                 >
-                                                    <Trash2 />
+                                                    + Eigene Übung hinzufügen
                                                 </button>
                                             </div>
-                                            {workout.exercises.map((exercise, idx) => (
-                                                <div key={idx} className="mb-3 last:mb-0 bg-slate-700/30 rounded-lg p-4">
-                                                    <h4 className="font-semibold text-purple-200 mb-2">{exercise.name}</h4>
-                                                    <div className="space-y-1">
-                                                        {exercise.sets.map((set, setIdx) => (
-                                                            <div key={setIdx} className="text-slate-300 text-sm">
-                                                                Satz {setIdx + 1}: {set.reps} Wdh × {set.weight} kg
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
+                                        )}
 
-                        {view === 'stats' && (
-                            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-2xl">
-                                <h2 className="text-2xl font-bold text-white mb-6">Statistiken</h2>
-                                {workouts.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <TrendingUp />
-                                        <p className="text-slate-400 text-lg mt-4">Keine Daten vorhanden</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600">
-                                            <h3 className="text-purple-200 font-semibold mb-2">Gesamt</h3>
-                                            <p className="text-white text-3xl font-bold">{workouts.length}</p>
-                                            <p className="text-slate-400 text-sm">Workouts absolviert</p>
-                                        </div>
-                                        
-                                        {Object.entries(getExerciseStats()).map(([name, stats]) => (
-                                            <div key={name} className="bg-slate-700/30 rounded-xl p-4 border border-slate-600">
-                                                <h3 className="text-purple-200 font-semibold mb-3">{name}</h3>
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    <div>
-                                                        <p className="text-slate-400 text-sm">Anzahl</p>
-                                                        <p className="text-white text-xl font-bold">{stats.count}×</p>
+                                        {/* Current Exercises */}
+                                        {currentWorkout.exercises.map((exercise, exerciseIndex) => (
+                                            <div key={exerciseIndex} className="mb-6 bg-slate-700/30 rounded-xl p-4 border border-slate-600">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <h4 className="text-xl font-bold text-white">{exercise.name}</h4>
+                                                    <button
+                                                        onClick={() => removeExercise(exerciseIndex)}
+                                                        className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 />
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    {exercise.sets.map((set, setIndex) => (
+                                                        <div key={setIndex} className="flex gap-2 items-center">
+                                                            <span className="text-purple-300 font-medium w-16 text-sm">Satz {setIndex + 1}</span>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Wdh"
+                                                                value={set.reps}
+                                                                onChange={(e) => updateSet(exerciseIndex, setIndex, 'reps', e.target.value)}
+                                                                className="w-20 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                step="0.5"
+                                                                placeholder="kg"
+                                                                value={set.weight}
+                                                                onChange={(e) => updateSet(exerciseIndex, setIndex, 'weight', e.target.value)}
+                                                                className="w-24 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                            />
+                                                            <select
+                                                                value={set.form}
+                                                                onChange={(e) => updateSet(exerciseIndex, setIndex, 'form', e.target.value)}
+                                                                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                                                            >
+                                                                <option value="Standard">Standard</option>
+                                                                <option value="Gut">Gut</option>
+                                                                <option value="Sehr gut">Sehr gut</option>
+                                                            </select>
+                                                            {exercise.sets.length > 1 && (
+                                                                <button
+                                                                    onClick={() => removeSet(exerciseIndex, setIndex)}
+                                                                    className="px-2 py-2 text-red-400 hover:bg-red-600/20 rounded-lg transition-colors"
+                                                                >
+                                                                    <X />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => addSet(exerciseIndex)}
+                                                    className="mt-3 w-full py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors font-medium"
+                                                >
+                                                    + Satz hinzufügen
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {/* Add More Exercises Button */}
+                                        {currentWorkout.exercises.length > 0 && (
+                                            <div className="mb-4">
+                                                <h4 className="text-purple-200 font-semibold mb-2">Weitere Übung hinzufügen:</h4>
+                                                {Object.entries(EXERCISES[currentWorkout.type]).map(([category, exercises]) => (
+                                                    <div key={category} className="mb-3">
+                                                        <h5 className="text-purple-300 text-sm mb-2 capitalize">{category}</h5>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {exercises.map(ex => (
+                                                                <button
+                                                                    key={ex}
+                                                                    onClick={() => addExercise(ex)}
+                                                                    className="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 rounded-lg transition-colors text-xs"
+                                                                >
+                                                                    {ex}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
+                                                ))}
+                                                <button
+                                                    onClick={addCustomExercise}
+                                                    className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-lg transition-colors font-medium text-sm mt-2"
+                                                >
+                                                    + Eigene Übung
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            onClick={editingWorkout ? updateExistingWorkout : saveWorkout}
+                                            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium shadow-lg"
+                                        >
+                                            {editingWorkout ? 'Änderungen speichern' : 'Workout speichern'}
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Running Workout */}
+                                {currentWorkout.type === 'running' && (
+                                    <>
+                                        {currentWorkout.runs.map((run, runIndex) => (
+                                            <div key={runIndex} className="mb-6 bg-slate-700/30 rounded-xl p-4 border border-slate-600">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <h4 className="text-lg font-bold text-white">Lauf {runIndex + 1}</h4>
+                                                    <button
+                                                        onClick={() => removeRun(runIndex)}
+                                                        className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 />
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-3">
                                                     <div>
-                                                        <p className="text-slate-400 text-sm">Max Gewicht</p>
-                                                        <p className="text-white text-xl font-bold">{stats.maxWeight} kg</p>
+                                                        <label className="block text-purple-200 mb-2 text-sm">Strecke (km)</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.1"
+                                                            placeholder="z.B. 5.0"
+                                                            value={run.distance}
+                                                            onChange={(e) => updateRun(runIndex, 'distance', e.target.value)}
+                                                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        />
                                                     </div>
+
                                                     <div>
-                                                        <p className="text-slate-400 text-sm">Volumen</p>
-                                                        <p className="text-white text-xl font-bold">{Math.round(stats.totalVolume)} kg</p>
+                                                        <label className="block text-purple-200 mb-2 text-sm">Zeit</label>
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Std"
+                                                                value={run.time.hours}
+                                                                onChange={(e) => updateRun(runIndex, 'time', { ...run.time, hours: e.target.value })}
+                                                                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Min"
+                                                                value={run.time.minutes}
+                                                                onChange={(e) => updateRun(runIndex, 'time', { ...run.time, minutes: e.target.value })}
+                                                                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Sek"
+                                                                value={run.time.seconds}
+                                                                onChange={(e) => updateRun(runIndex, 'time', { ...run.time, seconds: e.target.value })}
+                                                                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-purple-200 mb-2 text-sm">Anzahl Sprints (optional)</label>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="z.B. 3"
+                                                            value={run.sprints}
+                                                            onChange={(e) => updateRun(runIndex, 'sprints', e.target.value)}
+                                                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
+
+                                        <button
+                                            onClick={addRun}
+                                            className="w-full py-3 mb-4 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors font-medium"
+                                        >
+                                            + Weiteren Lauf hinzufügen
+                                        </button>
+
+                                        <button
+                                            onClick={editingWorkout ? updateExistingWorkout : saveWorkout}
+                                            disabled={currentWorkout.runs.length === 0}
+                                            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {editingWorkout ? 'Änderungen speichern' : 'Workout speichern'}
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Kickboxing Workout */}
+                                {currentWorkout.type === 'kickboxing' && (
+                                    <>
+                                        <div className="mb-6">
+                                            <label className="block text-purple-200 mb-2 font-medium">Trainingsdauer</label>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Std"
+                                                        value={currentWorkout.duration.hours}
+                                                        onChange={(e) => setCurrentWorkout({ ...currentWorkout, duration: { ...currentWorkout.duration, hours: e.target.value } })}
+                                                        className="w-full px-3 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    />
+                                                    <p className="text-slate-400 text-xs mt-1">Stunden</p>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Min"
+                                                        value={currentWorkout.duration.minutes}
+                                                        onChange={(e) => setCurrentWorkout({ ...currentWorkout, duration: { ...currentWorkout.duration, minutes: e.target.value } })}
+                                                        className="w-full px-3 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    />
+                                                    <p className="text-slate-400 text-xs mt-1">Minuten</p>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Sek"
+                                                        value={currentWorkout.duration.seconds}
+                                                        onChange={(e) => setCurrentWorkout({ ...currentWorkout, duration: { ...currentWorkout.duration, seconds: e.target.value } })}
+                                                        className="w-full px-3 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    />
+                                                    <p className="text-slate-400 text-xs mt-1">Sekunden</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={editingWorkout ? updateExistingWorkout : saveWorkout}
+                                            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium shadow-lg"
+                                        >
+                                            {editingWorkout ? 'Änderungen speichern' : 'Workout speichern'}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* History View */}
+                        {view === 'history' && (
+                            <>
+                                <div className="mb-4">
+                                    <select
+                                        value={filterType}
+                                        onChange={(e) => setFilterType(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    >
+                                        <option value="all">Alle Workouts</option>
+                                        <option value="push">Push</option>
+                                        <option value="pull">Pull</option>
+                                        <option value="legs">Legs</option>
+                                        <option value="abs">Abs</option>
+                                        <option value="running">Rennen</option>
+                                        <option value="kickboxing">Kickboxen</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {filteredWorkouts.length === 0 ? (
+                                        <div className="text-center py-12 bg-slate-800/50 backdrop-blur rounded-2xl">
+                                            <Calendar />
+                                            <p className="text-slate-400 text-lg mt-4">Noch keine Workouts vorhanden</p>
+                                        </div>
+                                    ) : (
+                                        filteredWorkouts.map((workout) => (
+                                            <div key={workout.id} className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-xl">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-white capitalize">
+                                                            {workout.type === 'running' ? '🏃 Rennen' : 
+                                                             workout.type === 'kickboxing' ? '🥊 Kickboxen' :
+                                                             workout.type === 'push' ? '💪 Push' :
+                                                             workout.type === 'pull' ? '🔥 Pull' :
+                                                             workout.type === 'legs' ? '🦵 Legs' :
+                                                             '🔲 Abs'}
+                                                        </h3>
+                                                        <p className="text-purple-300 text-sm">{new Date(workout.date).toLocaleDateString('de-DE')}</p>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => startEditWorkout(workout)}
+                                                            className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-colors"
+                                                        >
+                                                            <Edit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteWorkout(workout.id)}
+                                                            className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors"
+                                                        >
+                                                            <Trash2 />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Strength Workout Display */}
+                                                {workout.exercises && workout.exercises.map((exercise, idx) => (
+                                                    <div key={idx} className="mb-3 last:mb-0 bg-slate-700/30 rounded-lg p-4">
+                                                        <h4 className="font-semibold text-purple-200 mb-2">{exercise.name}</h4>
+                                                        <div className="space-y-1">
+                                                            {exercise.sets.map((set, setIdx) => (
+                                                                <div key={setIdx} className="text-slate-300 text-sm">
+                                                                    Satz {setIdx + 1}: {set.reps} Wdh × {set.weight} kg 
+                                                                    <span className="text-purple-300 ml-2">({set.form})</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Running Display */}
+                                                {workout.runs && workout.runs.map((run, idx) => (
+                                                    <div key={idx} className="mb-3 last:mb-0 bg-slate-700/30 rounded-lg p-4">
+                                                        <h4 className="font-semibold text-purple-200 mb-2">Lauf {idx + 1}</h4>
+                                                        <div className="text-slate-300 text-sm space-y-1">
+                                                            <p>Strecke: {run.distance} km</p>
+                                                            <p>Zeit: {run.time.hours || '0'}:{String(run.time.minutes || '0').padStart(2, '0')}:{String(run.time.seconds || '0').padStart(2, '0')}</p>
+                                                            {run.sprints && <p>Sprints: {run.sprints}x 100m</p>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Kickboxing Display */}
+                                                {workout.duration && (
+                                                    <div className="bg-slate-700/30 rounded-lg p-4">
+                                                        <h4 className="font-semibold text-purple-200 mb-2">Trainingsdauer</h4>
+                                                        <p className="text-slate-300 text-sm">
+                                                            {workout.duration.hours || '0'}:{String(workout.duration.minutes || '0').padStart(2, '0')}:{String(workout.duration.seconds || '0').padStart(2, '0')}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {/* Stats View */}
+                        {view === 'stats' && (
+                            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 shadow-2xl">
+                                <h2 className="text-2xl font-bold text-white mb-6">Statistiken</h2>
+                                
+                                {!statsCategory && !selectedExercise && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button onClick={() => setStatsCategory('push')} className="bg-slate-700/30 rounded-xl p-4 hover:bg-slate-700/50 transition-colors border border-slate-600">
+                                            <h3 className="text-lg font-bold text-white">💪 Push</h3>
+                                        </button>
+                                        <button onClick={() => setStatsCategory('pull')} className="bg-slate-700/30 rounded-xl p-4 hover:bg-slate-700/50 transition-colors border border-slate-600">
+                                            <h3 className="text-lg font-bold text-white">🔥 Pull</h3>
+                                        </button>
+                                        <button onClick={() => setStatsCategory('legs')} className="bg-slate-700/30 rounded-xl p-4 hover:bg-slate-700/50 transition-colors border border-slate-600">
+                                            <h3 className="text-lg font-bold text-white">🦵 Legs</h3>
+                                        </button>
+                                        <button onClick={() => setStatsCategory('abs')} className="bg-slate-700/30 rounded-xl p-4 hover:bg-slate-700/50 transition-colors border border-slate-600">
+                                            <h3 className="text-lg font-bold text-white">🔲 Abs</h3>
+                                        </button>
                                     </div>
+                                )}
+
+                                {statsCategory && !selectedExercise && (
+                                    <>
+                                        <button onClick={() => setStatsCategory(null)} className="mb-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">
+                                            ← Zurück
+                                        </button>
+                                        <h3 className="text-xl font-bold text-white mb-4 capitalize">{statsCategory} Übungen</h3>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {getAllExerciseNames()
+                                                .filter(name => {
+                                                    const exercisesInCategory = Object.values(EXERCISES[statsCategory] || {}).flat();
+                                                    return workouts.some(w => w.type === statsCategory && w.exercises?.some(e => e.name === name)) ||
+                                                           exercisesInCategory.includes(name);
+                                                })
+                                                .map(name => (
+                                                    <button
+                                                        key={name}
+                                                        onClick={() => setSelectedExercise(name)}
+                                                        className="px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 rounded-lg transition-colors text-left"
+                                                    >
+                                                        {name}
+                                                    </button>
+                                                ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {selectedExercise && (
+                                    <>
+                                        <button onClick={() => setSelectedExercise(null)} className="mb-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">
+                                            ← Zurück
+                                        </button>
+                                        <h3 className="text-xl font-bold text-white mb-6">{selectedExercise}</h3>
+                                        {getExerciseProgress(selectedExercise).length > 0 ? (
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <LineChart data={getExerciseProgress(selectedExercise)}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                                                    <XAxis dataKey="date" stroke="#cbd5e1" />
+                                                    <YAxis stroke="#cbd5e1" />
+                                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                                                    <Line type="monotone" dataKey="value" stroke="#a855f7" strokeWidth={2} dot={{ fill: '#a855f7' }} />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <p className="text-slate-400 text-center py-8">Noch keine Daten für diese Übung</p>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
